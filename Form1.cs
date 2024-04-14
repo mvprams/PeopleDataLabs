@@ -27,60 +27,70 @@ namespace PeopleDataLabs
             private const string API_KEY = "YOUR API KEY";
         private const string PDL_URL = "https://api.peopledatalabs.com/v5/person/bulk";
         private const string CSV_FILENAME = "enriched_profiles.csv";
+        private static string output = string.Empty;
 
-        static async Task Main(string[] args)
+        static async Task Search()
         {
             var allRecords = new List<Dictionary<string, string>>();
 
-            using (var reader = new StreamReader("profiles.csv"))
+            try
             {
-                var profileCount = 0;
-                while (!reader.EndOfStream)
+
+                using (var reader = new StreamReader("profiles.csv"))
                 {
-                    var line = await reader.ReadLineAsync();
-                    if (profileCount > 0)
+                    var profileCount = 0;
+                    while (!reader.EndOfStream)
                     {
-                        var profile = new Dictionary<string, string>
+                        var line = await reader.ReadLineAsync();
+                        if (profileCount > 0)
+                        {
+                            var profile = new Dictionary<string, string>
                         {
                             { "profile", line }
                         };
-                        allRecords.Add(profile);
+                            allRecords.Add(profile);
+                        }
+                        profileCount++;
                     }
-                    profileCount++;
+                    Console.WriteLine($"Read {profileCount - 1} profiles.");
                 }
-                Console.WriteLine($"Read {profileCount - 1} profiles.");
-            }
 
-            var data = new Dictionary<string, List<Dictionary<string, string>>>
+                var data = new Dictionary<string, List<Dictionary<string, string>>>
             {
                 { "requests", allRecords }
             };
 
-            var json = JsonConvert.SerializeObject(data);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
+                var json = JsonConvert.SerializeObject(data);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            using (var client = new HttpClient())
-            {
-                client.DefaultRequestHeaders.Add("X-api-key", API_KEY);
-                var response = await client.PostAsync(PDL_URL, content);
-                var responseContent = await response.Content.ReadAsStringAsync();
-                var jsonResponses = JsonConvert.DeserializeObject<List<JObject>>(responseContent);
-
-                foreach (var jsonResponse in jsonResponses)
+                using (var client = new HttpClient())
                 {
-                    if (jsonResponse["status"].Value<int>() == 200)
+                    client.DefaultRequestHeaders.Add("X-api-key", API_KEY);
+                    var response = await client.PostAsync(PDL_URL, content);
+                    var responseContent = await response.Content.ReadAsStringAsync();
+                    var jsonResponses = JsonConvert.DeserializeObject<List<JObject>>(responseContent);
+
+                    foreach (var jsonResponse in jsonResponses)
                     {
-                        var record = jsonResponse["data"].ToObject<Dictionary<string, string>>();
-                        allRecords.Add(record);
-                    }
-                    else
-                    {
-                        Console.WriteLine($"Bulk Person Enrichment Error: {jsonResponse}");
+                        if (jsonResponse["status"].Value<int>() == 200)
+                        {
+                            var record = jsonResponse["data"].ToObject<Dictionary<string, string>>();
+                            allRecords.Add(record);
+                        }
+                        else
+                        {
+                            Console.WriteLine($"Bulk Person Enrichment Error: {jsonResponse}");
+                        }
                     }
                 }
-            }
 
-            SaveProfilesToCsv(allRecords);
+                SaveProfilesToCsv(allRecords);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(output = e.Message.ToString());
+
+            }
         }
 
         static void SaveProfilesToCsv(List<Dictionary<string, string>> profiles)
@@ -91,22 +101,34 @@ namespace PeopleDataLabs
                 "work_email", "mobile_phone", "linkedin_url"
             };
 
-            using (var writer = new StreamWriter(CSV_FILENAME))
-            {
-                writer.WriteLine(string.Join(",", csvHeaderFields));
 
-                foreach (var profile in profiles)
+                using (var writer = new StreamWriter(CSV_FILENAME))
                 {
-                    var csvLine = new List<string>();
-                    foreach (var field in csvHeaderFields)
+                    writer.WriteLine(string.Join(",", csvHeaderFields));
+
+                    foreach (var profile in profiles)
                     {
-                        csvLine.Add(profile.ContainsKey(field) ? profile[field] : "");
+                        var csvLine = new List<string>();
+                        foreach (var field in csvHeaderFields)
+                        {
+                            csvLine.Add(profile.ContainsKey(field) ? profile[field] : "");
+                        }
+                        writer.WriteLine(string.Join(",", csvLine));
                     }
-                    writer.WriteLine(string.Join(",", csvLine));
+                    Console.WriteLine($"Wrote {profiles.Count} lines to: '{CSV_FILENAME}'.");
                 }
-                Console.WriteLine($"Wrote {profiles.Count} lines to: '{CSV_FILENAME}'.");
-            }
-        
+            
+        }
+
+        private void Search_btn_Click(object sender, EventArgs e)
+        {
+            var t = Task.Run(() => Search());
+            results_tb.Text = output;
+        }
+
+        private void enrich_btn_Click(object sender, EventArgs e)
+        {
+            
         }
     }
 }
