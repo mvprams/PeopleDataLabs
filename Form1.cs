@@ -155,22 +155,26 @@ namespace PeopleDataLabs
 
         private void Search_btn_Click(object sender, EventArgs e)
         {
+            isFound_tb.Text = "Searching for Persons";
             LinkedInParameter = LinkedIn_tb.Text;
             var t = Task.Run(() => Search());
             Thread.Sleep(5000);
             results_tb.Text = output;
             if (output != string.Empty)
                 isFound_tb.Text = "Person record Found!!!";
+            else isFound_tb.Text = "Person Not Found";
         }
 
         private void enrich_btn_Click(object sender, EventArgs e)
         {
+            isFound_tb.Text = "Sprinting....";
             LinkedInParameter = LinkedIn_tb.Text;
             var t = Task.Run(() => Enrich());
             Thread.Sleep(3000);
             results_tb.Text = output;
             if (output != string.Empty)
                 isFound_tb.Text = "Person record Found!!!";
+            else isFound_tb.Text = "Person Not Found";
         }
 
     }
