@@ -17,6 +17,7 @@ using System.Linq.Expressions;
 using System.Net.Http.Headers;
 using System.Dynamic;
 using System.Threading;
+using System.Configuration;
 
 namespace PeopleDataLabs
 {
@@ -27,19 +28,38 @@ namespace PeopleDataLabs
             InitializeComponent();
         }
 
-        public class SearchResponse
+        /// <summary>
+        /// API configuration added to the app.config NOTE: Be sure to add System.Configurtion DLL to the Project References
+        /// </summary>
+        internal class APIConfiguration
+        {
+            private string _apiKey;
+            public string APIKey
+            {
+                get
+                {
+                    return _apiKey;
+                }
+                set
+                {
+                    _apiKey = ConfigurationManager.AppSettings["ApiKey"];
+                }
+            }
+        }
+
+        internal class SearchResponse
         {
             public int Status { get; set; }
             public List<Person> Data { get; set; }
         }
 
-        public class EnrichResponse
+        internal class EnrichResponse
         {
             public int Status { get; set; }
             public int Likelihood { get; set; }
             public Person Data { get; set; }
         }
-        public class Person
+        internal class Person
         {
             public string Id { get; set; }
             public string Full_name { get; set; }
@@ -62,8 +82,8 @@ namespace PeopleDataLabs
         private const string CSV_FILENAME = "enriched_profiles.csv";
         private const string INPUT_FILE = "profiles.csv";
         private static string output = string.Empty;
-        public static string LinkedInParameter = string.Empty;
-        public static string LinkedInURL = string.Empty;
+        internal static string LinkedInParameter = string.Empty;
+        internal static string LinkedInURL = string.Empty;
         #endregion
 
         
@@ -73,7 +93,7 @@ namespace PeopleDataLabs
             {
                 var client = new HttpClient();
                 var request = new HttpRequestMessage(HttpMethod.Get, $"https://api.peopledatalabs.com/v5/person/search?dataset=all&sql=SELECT * FROM person WHERE linkedin_username = '{LinkedInParameter}'&size=10&pretty=true");
-                request.Headers.Add("X-Api-Key", "4eb821be1bae42ff4ba538c5e89d5d61c158ae009e55085ad9cb3c2323b5d6e4");
+                request.Headers.Add("X-Api-Key", API_KEY);
                 var response = await client.SendAsync(request);
                 response.EnsureSuccessStatusCode();
                 var jsonResponse = await response.Content.ReadAsStringAsync();
@@ -115,6 +135,7 @@ namespace PeopleDataLabs
                 var client = new HttpClient();
                 var request = new HttpRequestMessage
                 {
+
                     Method = HttpMethod.Get,
                     RequestUri = new Uri($"https://api.peopledatalabs.com/v5/person/enrich?profile=https%3A%2F%2Fwww.linkedin.com%2Fin%2F{LinkedInParameter}&min_likelihood=0&titlecase=false&include_if_matched=false"),
                     Headers =
