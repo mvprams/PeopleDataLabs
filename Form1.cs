@@ -31,10 +31,10 @@ namespace PeopleDataLabs
         /// <summary>
         /// API configuration added to the app.config NOTE: Be sure to add System.Configurtion DLL to the Project References
         /// </summary>
-        internal class APIConfiguration
+        internal static class APIConfiguration
         {
-            private string _apiKey;
-            public string APIKey
+            private static string _apiKey = ConfigurationManager.AppSettings["ApiKey"].ToString();
+            public static string APIKey
             {
                 get
                 {
@@ -42,7 +42,7 @@ namespace PeopleDataLabs
                 }
                 set
                 {
-                    _apiKey = ConfigurationManager.AppSettings["ApiKey"];
+                    
                 }
             }
         }
@@ -77,7 +77,7 @@ namespace PeopleDataLabs
             public string Facebook_url { get; set; }
         }
         #region "variables"
-        private const string API_KEY = "4eb821be1bae42ff4ba538c5e89d5d61c158ae009e55085ad9cb3c2323b5d6e4";
+        //private const string API_KEY = "4eb821be1bae42ff4ba538c5e89d5d61c158ae009e55085ad9cb3c2323b5d6e4";
         private const string PDL_URL = "https://api.peopledatalabs.com/v5/person/search";
         private const string CSV_FILENAME = "enriched_profiles.csv";
         private const string INPUT_FILE = "profiles.csv";
@@ -93,33 +93,23 @@ namespace PeopleDataLabs
             {
                 var client = new HttpClient();
                 var request = new HttpRequestMessage(HttpMethod.Get, $"https://api.peopledatalabs.com/v5/person/search?dataset=all&sql=SELECT * FROM person WHERE linkedin_username = '{LinkedInParameter}'&size=10&pretty=true");
-                request.Headers.Add("X-Api-Key", API_KEY);
+                request.Headers.Add("X-Api-Key", APIConfiguration.APIKey);
                 var response = await client.SendAsync(request);
                 response.EnsureSuccessStatusCode();
                 var jsonResponse = await response.Content.ReadAsStringAsync();
 
                 output = jsonResponse;
 
+                
+                //should likely break these out into two methods. 1 for deserializing the entire object into a recursive download of the json object
                 SearchResponse apiresponse = JsonConvert.DeserializeObject<SearchResponse>(jsonResponse);
                 
+                //this method would be broken out to manually map the items that you are licensed for
+                /*
                 foreach (var item in apiresponse.Data)
                 {
-                    LinkedInURL = item.Last_initial;
+                    LinkedInURL = item.Linkedin_url; //if manually mapping the class is desired for your licensing
                 }
-
-                /*
-                using (var writer = new StreamWriter("enrich_people.csv"))
-                {
-                    writer.WriteLine("Id, First Name, Last Name, LinkedIn Username, LinkedIn URL");
-                    foreach (var item in apiresponse.Data)
-                    {
-                        string together = $"{item.Id},{item.First_name},{item.Last_name},{item.Linkedin_username},{item.Linkedin_url}";
-                        // Write data to CSV format (customize as needed)
-                        await writer.WriteLineAsync(together);
-                    }
-                }
-
-                Console.WriteLine("Data saved to enrich_people.csv");
                 */
             }
             catch (Exception ex)
@@ -141,7 +131,7 @@ namespace PeopleDataLabs
                     Headers =
                     {
                         { "accept", "application/json" },
-                        { "X-API-Key", "4eb821be1bae42ff4ba538c5e89d5d61c158ae009e55085ad9cb3c2323b5d6e4" },
+                        { "X-API-Key", APIConfiguration.APIKey },
                     },
                 };
                 using (var response = await client.SendAsync(request))
